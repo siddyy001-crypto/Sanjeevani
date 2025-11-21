@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#051b11">
+    <title>Sanjivani Ayurved</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Yatra+One&family=Tiro+Devanagari+Marathi:ital@0;1&family=Manrope:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+
+    <style>
+        :root {
+            --deep-green: #051b11;
+            --royal-gold: #d4af37;
+            --cream: #f5f5dc;
+            
+            /* LIQUID GLASS 2.0 */
+            --glass-bg: rgba(20, 50, 35, 0.15); 
+            --glass-blur: blur(20px) saturate(180%);
+            
+            /* BORDERS */
+            --subtle-border: 1px solid rgba(212, 175, 55, 0.3);
+            --sidham-border: 4px double #8B4513; 
+            --sidham-shadow: 0 0 0 2px #d4af37, inset 0 0 20px rgba(212,175,55,0.1), 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Tiro Devanagari Marathi', serif; 
+            background-color: var(--deep-green);
+            color: var(--cream);
+            min-height: 100dvh;
+            overflow-x: hidden;
+            user-select: none;
+            padding: 25px;
+            position: relative; 
+        }
+
+        /* --- THE ROYAL FRAME --- */
+        #royal-frame {
+            position: absolute; top: 15px; left: 15px; right: 15px; bottom: 15px; 
+            z-index: 9999; pointer-events: none;
+            border: 3px solid var(--royal-gold);
+            box-shadow: 0 0 0 4px var(--deep-green), 0 0 0 5px var(--royal-gold), inset 0 0 30px rgba(0,0,0,0.5);
+            min-height: calc(100dvh - 30px);
+        }
+
+        /* BACKGROUND */
+        #global-bg {
+            position: fixed; inset: 0; z-index: -2;
+            background: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.05), transparent 80%),
+                        linear-gradient(180deg, #020d08 0%, #0a291b 100%);
+        }
+        
+        #leaf-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none;
+        }
+
+        /* TYPOGRAPHY */
+        .font-fancy { font-family: 'Rozha One', serif; }
+        .font-heading { font-family: 'Yatra One', system-ui; }
+        .text-gold { color: var(--royal-gold); }
+
+        /* NAVBAR */
+        .navbar {
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+            padding: 25px 30px 15px 30px; 
+            display: flex; justify-content: space-between; align-items: center;
+            padding-top: max(25px, env(safe-area-inset-top));
+            background: rgba(5, 27, 17, 0.6);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+        }
+        
+        .logo-group { display: flex; align-items: center; gap: 10px; }
+        .logo-text h1 { margin: 0; font-size: 22px; color: var(--royal-gold); line-height: 1; }
+        .logo-text span { font-size: 10px; letter-spacing: 1px; opacity: 0.8; font-family: 'Manrope'; }
+        .cart-btn { position: relative; color: var(--royal-gold); background: none; border: none; padding: 8px; }
+        .cart-badge {
+            position: absolute; top: 0; right: 0;
+            background: #d4af37; color: #051b11; font-weight: 900; font-family: 'Manrope';
+            width: 18px; height: 18px; border-radius: 50%; font-size: 10px;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transform: scale(0); transition: 0.3s;
+        }
+        .cart-badge.visible { opacity: 1; transform: scale(1); }
+
+        /* HERO */
+        .hero-section { text-align: center; padding: 150px 20px 50px; }
+        .main-title { font-size: 56px; color: var(--royal-gold); margin: 0; line-height: 1.1; text-shadow: 0 4px 25px rgba(212, 175, 55, 0.4); font-weight: 400; }
+        .sub-title { font-size: 24px; color: var(--cream); margin-top: 5px; display: block; opacity: 0.9; font-family: 'Yatra One'; letter-spacing: 1px; }
+        .tagline { font-family: 'Manrope', sans-serif; color: rgba(245, 245, 220, 0.8); font-size: 13px; margin-top: 20px; letter-spacing: 0.5px; background: rgba(212,175,55,0.1); display: inline-block; padding: 6px 18px; border-radius: 50px; border: 1px solid rgba(212,175,55,0.3); }
+
+        /* PRODUCT CARD */
+        .royal-card {
+            background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+            border: var(--subtle-border); border-radius: 24px; padding: 25px; margin: 0 20px 40px;
+            position: relative; overflow: hidden; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto;
+        }
+        .product-header { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px; }
+        .product-icon { font-size: 50px; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; background: rgba(212,175,55,0.1); border-radius: 15px; border: 1px solid var(--royal-gold); }
+        .product-info h3 { margin: 0 0 5px; font-size: 24px; color: var(--cream); line-height: 1.2; }
+        .price-block { font-family: 'Manrope', sans-serif; color: var(--royal-gold); font-weight: 700; font-size: 20px; }
+        .desc-list { padding: 0; list-style: none; margin: 0 0 25px; }
+        .desc-list li { position: relative; padding-left: 20px; margin-bottom: 12px; font-size: 15px; color: rgba(245, 245, 220, 0.95); line-height: 1.5; }
+        .desc-list li::before { content: '•'; position: absolute; left: 0; color: var(--royal-gold); font-size: 20px; line-height: 15px; }
+        .add-btn { width: 100%; background: linear-gradient(135deg, #fff, #d4af37); color: #051b11; border: none; padding: 16px; border-radius: 14px; font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: 1px; cursor: pointer; box-shadow: 0 5px 20px rgba(212,175,55,0.2); display: flex; justify-content: center; align-items: center; gap: 10px; }
+
+        /* CONTACT CARD */
+        .contact-card {
+            border: var(--sidham-border); box-shadow: var(--sidham-shadow); background: rgba(20, 50, 35, 0.4); backdrop-filter: var(--glass-blur); border-radius: 30px; padding: 30px 20px; text-align: center; width: 100%; max-width: 600px; margin: 40px auto 100px auto;
+        }
+        .contact-title { font-size: 32px; color: var(--royal-gold); margin-bottom: 20px; display: inline-block; border-bottom: 2px solid var(--royal-gold); padding-bottom: 5px; }
+        .contact-text { font-size: 16px; margin: 10px 0; line-height: 1.6; color: var(--cream); }
+        .contact-highlight { color: var(--royal-gold); margin: 25px 0; background: rgba(212,175,55,0.1); padding: 15px; border-radius: 15px; border: 1px solid rgba(212,175,55,0.3); }
+        .contact-highlight strong { font-size: 24px; display: block; margin-bottom: 5px; }
+        .contact-addr { font-size: 16px; opacity: 0.9; margin-top: 25px; line-height: 1.6; border-top: 1px solid rgba(212,175,55,0.2); padding-top: 20px; }
+        
+        .contact-grid { display: grid; gap: 15px; margin: 25px 0; background: rgba(212,175,55,0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(212,175,55,0.2); }
+        .contact-row { display: flex; align-items: center; gap: 12px; text-align: left; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .contact-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+        /* VIEWS */
+        .view { display: none; padding-top: 80px; min-height: 100dvh; animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+        .view.active { display: block; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* QR CODE SECTION */
+        #qr-section {
+            display: none; margin-top: 20px;
+            background: white; padding: 20px; border-radius: 15px;
+            text-align: center;
+            animation: slideDown 0.4s ease;
+        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .qr-img { width: 150px; height: 150px; mix-blend-mode: multiply; margin-bottom: 10px; }
+
+        /* ADMIN TABLE */
+        #admin-panel { position: fixed; inset: 0; z-index: 10000; background: rgba(5, 27, 17, 0.98); backdrop-filter: blur(15px); transform: translateY(100%); transition: transform 0.4s; overflow-y: auto; padding: 25px; }
+        #admin-panel.open { transform: translateY(0); }
+        .admin-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; padding: 20px; }
+        .admin-table tr { background: rgba(255,255,255,0.03); }
+        .admin-table td { padding: 15px; color: var(--cream); border-bottom: 1px solid rgba(212,175,55,0.1); }
+        .admin-table th { text-align: left; color: var(--royal-gold); padding: 10px; font-family: 'Manrope'; }
+
+        /* INPUTS */
+        input, textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); color: var(--cream); padding: 16px; border-radius: 12px; font-size: 18px; margin-bottom: 20px; outline: none; font-family: 'Manrope'; }
+        input:focus { border-color: var(--royal-gold); background: rgba(255,255,255,0.08); }
+        
+        .checkout-btn { width: 100%; background: var(--royal-gold); color: #051b11; border: none; padding: 16px; font-weight: 900; border-radius: 12px; font-size: 18px; margin-top: 20px; cursor: pointer; font-family: 'Manrope'; }
+        
+        #auth-loading { position: fixed; inset: 0; z-index: 9999; background: #051b11; display: flex; align-items: center; justify-content: center; }
+        #auth-loading.hidden { display: none; }
+        #product-list { padding: 0 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="royal-frame"></div>
+    <div id="global-bg"></div>
+    <canvas id="leaf-canvas"></canvas>
+    <div id="auth-loading"><div style="font-size: 40px; color: var(--royal-gold); animation: pulse 1.5s infinite;">🌿 Loading...</div><style>@keyframes pulse { 50% { opacity: 0.5; } }</style></div>
+
+    <nav class="navbar">
+        <div class="logo-group" onclick="handleLogoTap()">
+            <div style="font-size: 36px;">🌿</div>
+            <div class="logo-text"><h1 class="font-fancy">संजीवनी आयुर्वेद</h1><span class="font-heading" style="font-size: 11px;">उपचार केंद्र</span></div>
+        </div>
+        <div style="display: flex; gap: 15px;">
+            <button class="cart-btn" onclick="setView('track')"><i data-lucide="search"></i></button>
+            <button class="cart-btn" onclick="setView('cart')"><i data-lucide="shopping-bag"></i><div id="cart-badge" class="cart-badge">0</div></button>
+        </div>
+    </nav>
+
+    <div id="login-modal" style="position:fixed; inset:0; z-index:10001; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; opacity:0; pointer-events:none; transition:opacity 0.3s;">
+        <div class="login-box" style="border:var(--sidham-border); background:#051b11; padding:40px; border-radius:30px; text-align:center; width:85%; max-width:350px;">
+            <h2 class="font-fancy text-gold">Owner Access</h2>
+            <p style="font-size:12px; color:rgba(255,255,255,0.5); margin-bottom:20px;">Secure Admin Authentication</p>
+            
+            <input type="email" id="admin-email" value="shonsk0010@gmail.com" placeholder="Admin Email" style="text-align:center;">
+            <input type="password" id="admin-pass" placeholder="Password" style="text-align:center;">
+            
+            <button class="add-btn" id="btn-login" onclick="loginAdmin()">UNLOCK DASHBOARD</button>
+            <button onclick="closeLogin()" style="background:none; border:none; color:rgba(255,255,255,0.5); margin-top:15px; font-family:'Manrope'">Cancel</button>
+        </div>
+    </div>
+
+    <div id="view-home" class="view active">
+        <div class="hero-section">
+            <h1 class="main-title font-fancy">संजीवनी आयुर्वेद</h1>
+            <span class="sub-title font-heading">उपचार केंद्र</span>
+            <p class="tagline">100% Guaranteed Results for Hair Problems.</p>
+        </div>
+        <div id="product-list"></div>
+        <div class="contact-card">
+            <h2 class="font-fancy contact-title">संपर्क</h2>
+            <div class="contact-grid">
+                <div class="contact-row"><i data-lucide="check-circle" class="text-gold" size="16"></i><span style="font-size:14px;">आता आमची सर्व आयुर्वेदिक औषधे <strong>होलसेल भावात</strong> उपलब्ध</span></div>
+                <div class="contact-row"><i data-lucide="truck" class="text-gold" size="16"></i><span style="font-size:14px;"><strong>कुरिअर सेवा</strong> सर्वत्र उपलब्ध</span></div>
+                <div class="contact-row"><i data-lucide="phone" class="text-gold" size="16"></i><div><strong style="color:var(--royal-gold); font-size:18px;">9822796580</strong><div style="font-size:10px; opacity:0.7;">(सकाळी 10 ते रात्री 10)</div></div></div>
+                <div class="contact-row"><i data-lucide="mail" class="text-gold" size="16"></i><span style="font-size:12px; word-break:break-all;">shonsk0010@gmail.com</span></div>
+            </div>
+            <div class="contact-addr"><i data-lucide="map-pin" style="display:inline; margin-right:5px; color:var(--royal-gold);"></i><strong>पत्ता:</strong> सुधीर कांबळे, तुकाई दर्शन, रस्ता क्र. 14,<br>(शेवटचा बंगला), हडपसर (फुरसुंगी), पुणे-412308.</div>
+        </div>
+    </div>
+
+    <div id="view-cart" class="view">
+        <div style="text-align: center; padding: 20px;"><h2 class="font-fancy text-gold" style="font-size: 32px;">Your Treasures</h2><p style="font-size: 13px; opacity: 0.6;">Royal Cart</p></div>
+        <div id="cart-items"></div>
+        <div id="cart-footer" class="royal-card" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:600px; margin:0; border-radius:20px; padding:20px; display:none; z-index:90;">
+            <div style="display:flex; justify-content:space-between; font-size:20px; font-weight:bold; margin-bottom:15px; font-family:'Manrope'"><span>Total</span> <span class="text-gold" id="cart-total">₹0</span></div>
+            <button class="checkout-btn" onclick="setView('checkout')">QUICK CHECKOUT</button>
+        </div>
+        <div id="empty-msg" style="text-align:center; margin-top:50px; opacity:0.5; display:none; font-family:'Manrope'">Your cart is empty.</div>
+    </div>
+
+    <div id="view-checkout" class="view" style="padding: 20px;">
+        <button onclick="setView('cart')" style="background:none; border:none; color:rgba(255,255,255,0.5); margin-bottom:20px; font-family:'Manrope'">← Back</button>
+        <h2 class="font-fancy text-gold" style="font-size: 28px; margin-bottom: 20px;">Swift Checkout</h2>
+        
+        <div id="step-1" class="royal-card">
+            <p style="opacity:0.7; margin-bottom:15px; font-family:'Manrope'">Enter Mobile Number</p>
+            <input type="tel" id="swift-phone" placeholder="98765 43210" style="font-size:24px; font-weight:bold; text-align:center;">
+            <button class="checkout-btn" id="btn-check" onclick="checkUser()">CONTINUE</button>
+        </div>
+
+        <div id="step-2" style="display:none;" class="royal-card">
+            <div id="welcome-msg" style="background:rgba(212,175,55,0.1); padding:15px; border-radius:10px; margin-bottom:20px; display:none; font-family:'Manrope'; color:var(--royal-gold);">Welcome Back!</div>
+            <input type="text" id="order-name" placeholder="Full Name">
+            <textarea id="order-address" rows="3" placeholder="Delivery Address"></textarea>
+            
+            <div style="margin: 20px 0;">
+                <span class="form-label">Payment Method</span>
+                <div style="display: grid; gap: 10px;">
+                    <div class="payment-option" id="opt-cod" onclick="selectPayment('cod')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px; cursor: pointer;">
+                        <div class="radio-circle" style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--royal-gold); display: flex; align-items: center; justify-content: center;"><div class="radio-inner" style="width: 10px; height: 10px; background: var(--royal-gold); border-radius: 50%; opacity: 0;"></div></div>
+                        <div><div style="font-weight:bold; font-family:'Manrope'; color:var(--cream);">Cash on Delivery</div><div style="font-size:11px; opacity:0.6; font-family:'Manrope';">Pay cash when order arrives</div></div>
+                    </div>
+                    <div class="payment-option" id="opt-upi" onclick="selectPayment('upi')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px; cursor: pointer;">
+                        <div class="radio-circle" style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--royal-gold); display: flex; align-items: center; justify-content: center;"><div class="radio-inner" style="width: 10px; height: 10px; background: var(--royal-gold); border-radius: 50%; opacity: 0;"></div></div>
+                        <div><div style="font-weight:bold; font-family:'Manrope'; color:var(--cream);">Pay via UPI</div><div style="font-size:11px; opacity:0.6; font-family:'Manrope';">GPay, PhonePe, Paytm</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="qr-section">
+                <div style="color:#051b11; font-weight:bold; margin-bottom:5px;">Scan to Pay</div>
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=9822796580@upi&pn=SanjeevaniAyurved" class="qr-img" alt="UPI QR">
+                <div style="font-size:12px; color:#555; margin-bottom:10px;">UPI: 9822796580@upi</div>
+                </div>
+
+            <button class="checkout-btn" id="btn-confirm" onclick="placeOrder()">CONFIRM ORDER</button>
+        </div>
+    </div>
+
+    <div id="view-success" class="view" style="text-align:center; padding-top:150px;">
+        <div style="font-size:60px; margin-bottom:20px;">🎉</div>
+        <h2 class="font-fancy text-gold">Order Placed!</h2>
+        <p style="font-size:20px; margin:20px 0; font-family:'Manrope'">ID: <span id="success-id" style="font-weight:bold;"></span></p>
+        <div id="success-payment-box" style="font-size:12px; background:rgba(255,255,255,0.1); display:inline-block; padding:6px 16px; border-radius:20px; margin-bottom:30px; letter-spacing: 1px;">
+            PAYMENT: <span id="success-payment" style="color: #fff; font-weight: bold;">COD</span>
+        </div>
+        <p style="opacity: 0.7; font-size: 15px; max-width: 280px; margin: 0 auto 40px auto; line-height: 1.6;">We have received your request. Your royal package will be dispatched shortly.</p>
+        <button class="add-btn" style="width:auto; display:inline-flex; margin-top:20px;" onclick="setView('track')">TRACK ORDER</button>
+        <div style="margin-top:20px;"><button onclick="setView('home')" style="background:none; border:none; color:#888; font-family:'Manrope'">Home</button></div>
+    </div>
+
+    <div id="view-track" class="view" style="padding:20px;">
+        <h2 class="font-fancy text-gold">Track Order</h2>
+        <div style="display:flex; gap:10px; margin-bottom:30px;">
+            <input type="tel" id="track-phone" placeholder="Mobile Number">
+            <button style="background:var(--royal-gold); border:none; width:60px; border-radius:10px; color:#051b11;" onclick="trackOrder()"><i data-lucide="search"></i></button>
+        </div>
+        <div id="track-results"></div>
+    </div>
+
+    <div id="admin-panel">
+        <div style="padding:20px; border-bottom:1px solid rgba(212,175,55,0.2); display:flex; justify-content:space-between; align-items:center;">
+            <h2 class="font-fancy text-gold" style="margin:0;">Owner Dashboard</h2>
+            <div>
+                <button onclick="logoutAdmin()" style="background:rgba(255,0,0,0.2); border:1px solid red; color:white; padding:5px 10px; border-radius:8px; font-size:12px; margin-right:10px;">Logout</button>
+                <button onclick="toggleAdmin(false)" style="background:none; border:none; color:white;"><i data-lucide="x"></i></button>
+            </div>
+        </div>
+        <div id="admin-content"></div>
+    </div>
+
+    <script>
+        // --- FIREBASE CONFIGURATION (USER PROVIDED) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYSfGaRBAVyicUx2f7b3sAN9QAiGrgPYs",
+            authDomain: "sanjeevani-c0c5b.firebaseapp.com",
+            databaseURL: "https://sanjeevani-c0c5b-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "sanjeevani-c0c5b",
+            storageBucket: "sanjeevani-c0c5b.firebasestorage.app",
+            messagingSenderId: "123479303610",
+            appId: "1:123479303610:web:2b8fca3975d5d25e792983",
+            measurementId: "G-GGEB7VWT1F"
+        };
+
+        // Initialize Firebase (Compat)
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const analytics = firebase.analytics();
+        
+        // App ID for database collections
+        const appId = 'sanjeevani-v1';
+
+        const PRODUCTS = [
+            { id: 1, name: "संजीवनी केशातेल (Herbal Oil)", price: 600, weight: "230ml", icon: "🌿", desc: ["कितीही केस गळत असोत, आता केसांची काळजी करणं सोडून द्या.", "केसांची कोणताही समस्या असो या तेलाने ती पूर्णपणे व कायमस्वरूपी 100% बरी होते.", "या तेलाच्या एका वापराने 50% केस गळती थांबते.", "आता केस हवे तेवढे वाढवा कमरेपर्यंत, गुडघ्यापर्यंत.", "केस दाट, जाड, रेशमी, मुलायम आणि मजबूत होतात.", "केसांचा गुंता, कोरडेपणा, कोंडा, केसांना फाटे फुटणे हे सर्व दूर होते.", "काळे केस कधीच पांढरे होत नाहीत.", "कमी वयात केस पांढरे होणे ही समस्या हे तेल 100% दूर करते.", "टक्कल पडण्याची भीती असलेल्यांना या तेलाच्या वापराने ती भीती राहत नाही."] },
+            { id: 2, name: "संजीवनी केशवर्धक चूर्ण (Powder)", price: 600, weight: "200 ग्रॅम", icon: "🍂", desc: ["केशतेलासोबत हे चूर्ण घेतल्यास खूपच चांगले आणि लवकर परिणाम मिळतात.", "केसांना सर्व पोषक घटक मिळून केसांची कोणताही समस्या राहत नाही.", "हे चूर्ण केसांना दाट, जाड, मजबूत, लांब, रेशमी, मुलायम करते.", "हे चूर्ण शरीराला आतून उत्साही आणि मजबूत करते."] }
+        ];
+
+        let cart = [];
+        let currentUser = null;
+        let selectedPayment = 'COD';
+        let isAdmin = false;
+
+        // FIREFLIES
+        const canvas = document.getElementById('leaf-canvas'); const ctx = canvas.getContext('2d');
+        let particles = []; let splashes = []; let lastScrollY = window.scrollY;
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+        class Firefly { constructor() { this.reset(); } reset() { this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 3 + 1; this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5; this.alpha = Math.random() * 0.8 + 0.2; } update() { this.x += this.vx; this.y += this.vy; this.alpha += (Math.random() - 0.5) * 0.05; if(this.alpha < 0.1) this.alpha = 0.1; if(this.alpha > 1) this.alpha = 1; if(this.x < 0 || this.x > canvas.width) this.vx *= -1; if(this.y < 0 || this.y > canvas.height) this.vy *= -1; } draw() { ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = '#d4af37'; ctx.shadowBlur = 20; ctx.shadowColor = '#d4af37'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); ctx.restore(); } }
+        class SplashLeaf { constructor(dir) { this.x = Math.random() * canvas.width; this.y = dir === 1 ? -20 : canvas.height + 20; this.vy = dir * (Math.random() * 8 + 12); this.vx = (Math.random() - 0.5) * 6; this.rot = Math.random() * 360; this.life = 1; this.size = Math.random() * 8 + 5; } update() { this.x += this.vx; this.y += this.vy; this.rot += 8; this.life -= 0.03; } draw() { ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot * Math.PI/180); ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = '#d4af37'; ctx.shadowBlur = 15; ctx.shadowColor = '#d4af37'; ctx.beginPath(); ctx.ellipse(0,0, this.size, this.size*0.5, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); } }
+        for(let i=0; i<40; i++) particles.push(new Firefly());
+        function animate() { ctx.clearRect(0,0,canvas.width, canvas.height); particles.forEach(p => { p.update(); p.draw(); }); for(let i=splashes.length-1; i>=0; i--) { let p = splashes[i]; p.update(); p.draw(); if(p.life <= 0) splashes.splice(i, 1); } requestAnimationFrame(animate); }
+        animate();
+        window.addEventListener('scroll', () => { const delta = window.scrollY - lastScrollY; if(Math.abs(delta) > 15) { let dir = delta > 0 ? 1 : -1; for(let i=0; i<5; i++) splashes.push(new SplashLeaf(dir)); } lastScrollY = window.scrollY; });
+
+        // AUDIO
+        const AudioContext = window.AudioContext || window.webkitAudioContext; let audioCtx;
+        function initAudio() { if (!audioCtx) audioCtx = new AudioContext(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+        document.addEventListener('click', initAudio, { once: true }); document.addEventListener('touchstart', initAudio, { once: true });
+        function playSound(type) { if (!audioCtx) initAudio(); const t = audioCtx.currentTime; const osc = audioCtx.createOscillator(); const osc2 = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination); if (type === 'add') { osc.type = 'triangle'; osc.frequency.setValueAtTime(400, t); osc.frequency.exponentialRampToValueAtTime(800, t + 0.1); gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1); osc.start(t); osc.stop(t + 0.1); } else if (type === 'success') { osc.type = 'sine'; osc2.type = 'sine'; osc.frequency.setValueAtTime(523.25, t); osc2.frequency.setValueAtTime(659.25, t); gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(0.1, t + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, t + 1.5); osc.start(t); osc2.start(t); osc.stop(t + 1.5); osc2.stop(t + 1.5); if(navigator.vibrate) navigator.vibrate([50, 50, 50]); } else if (type === 'found') { osc.type = 'sine'; osc.frequency.setValueAtTime(880, t); gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(0.1, t + 0.1); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5); osc.start(t); osc.stop(t + 0.5); } }
+
+        // APP
+        function init() {
+            lucide.createIcons(); renderProducts(); selectPayment('cod');
+            
+            // AUTH LISTENER
+            auth.onAuthStateChanged(u => {
+                document.getElementById('auth-loading').style.display = 'none';
+                if(u) {
+                    currentUser = u;
+                    if(!u.isAnonymous) {
+                        // If authenticated with Email (not anon), assume admin
+                        isAdmin = true;
+                        closeLogin();
+                        toggleAdmin(true);
+                        loadAdmin();
+                    }
+                } else {
+                    // If no user, sign in anonymously for cart tracking
+                    auth.signInAnonymously();
+                }
+            });
+        }
+
+        function renderProducts() { const div = document.getElementById('product-list'); div.innerHTML = PRODUCTS.map(p => `<div class="royal-card"><div class="product-header"><div class="product-icon">${p.icon}</div><div class="product-info"><h3 class="font-heading">${p.name}</h3><div class="price-block">₹${p.price} / <span style="font-size:14px; font-weight:400; color:#f5f5dc;">${p.weight}</span></div></div></div><ul class="desc-list">${p.desc.map(d => `<li>${d}</li>`).join('')}</ul><button class="add-btn" onclick="addToCart(${p.id})">ADD TO CART <i data-lucide="plus"></i></button></div>`).join(''); lucide.createIcons(); }
+        window.setView = function(id) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById('view-'+id).classList.add('active'); window.scrollTo(0,0); if(id === 'cart') renderCart(); }
+        window.addToCart = function(id) { playSound('add'); const p = PRODUCTS.find(x => x.id === id); const exist = cart.find(x => x.id === id); if(exist) exist.qty++; else cart.push({...p, qty:1}); updateBadge(); if(navigator.vibrate) navigator.vibrate(20); }
+        function updateBadge() { const c = cart.reduce((a,b)=>a+b.qty,0); const b = document.getElementById('cart-badge'); b.innerText = c; if(c>0) b.classList.add('visible'); else b.classList.remove('visible'); }
+        function renderCart() { const div = document.getElementById('cart-items'); const footer = document.getElementById('cart-footer'); const empty = document.getElementById('empty-msg'); if(cart.length === 0) { div.innerHTML=''; footer.style.display='none'; empty.style.display='block'; return; } empty.style.display='none'; footer.style.display='block'; div.innerHTML = cart.map(item => `<div class="royal-card" style="padding:15px; margin:15px auto; display:flex; justify-content:space-between; align-items:center;"><div><div style="font-weight:bold; font-family:'Manrope'">${item.name}</div><div class="text-gold font-family:'Manrope'">₹${item.price}</div></div><div style="background:rgba(0,0,0,0.3); padding:5px 10px; border-radius:10px; display:flex; gap:10px; font-family:'Manrope'"><button onclick="modQty(${item.id}, -1)" style="background:none; border:none; color:#fff;">-</button><b>${item.qty}</b><button onclick="modQty(${item.id}, 1)" style="background:none; border:none; color:#fff;">+</button></div></div>`).join(''); document.getElementById('cart-total').innerText = '₹' + cart.reduce((a,b)=>a+(b.price*b.qty),0); }
+        window.modQty = function(id, d) { const i = cart.find(x => x.id === id); if(i) { i.qty += d; if(i.qty <= 0) cart = cart.filter(x => x.id !== id); } renderCart(); updateBadge(); }
+        window.formatPhone = function(e) { e.value = e.value.replace(/\D/g,'').slice(0,10); }
+        
+        window.selectPayment = function(method) {
+            selectedPayment = method === 'cod' ? 'COD' : 'UPI';
+            document.getElementById('opt-cod').style.borderColor = 'rgba(212,175,55,0.3)';
+            document.getElementById('opt-cod').querySelector('.radio-inner').style.opacity = '0';
+            document.getElementById('opt-upi').style.borderColor = 'rgba(212,175,55,0.3)';
+            document.getElementById('opt-upi').querySelector('.radio-inner').style.opacity = '0';
+            
+            const el = document.getElementById('opt-' + method);
+            el.style.borderColor = '#d4af37'; el.querySelector('.radio-inner').style.opacity = '1';
+            
+            const qrDiv = document.getElementById('qr-section');
+            const btn = document.getElementById('btn-confirm');
+            
+            if(method === 'upi') {
+                qrDiv.style.display = 'block';
+                btn.innerText = 'PAY & CONFIRM';
+            } else {
+                qrDiv.style.display = 'none';
+                btn.innerText = 'CONFIRM ORDER';
+            }
+        }
+
+        window.checkUser = function() {
+            const p = document.getElementById('swift-phone').value;
+            if(p.length < 10) return alert("Enter Valid Phone");
+            const btn = document.getElementById('btn-check'); btn.innerHTML = "Checking..."; btn.disabled = true;
+            db.collection('artifacts').doc(appId).collection('public').doc('data').collection('customers').doc(p).get()
+            .then(doc => {
+                document.getElementById('step-1').style.display = 'none'; document.getElementById('step-2').style.display = 'block';
+                if(doc.exists) {
+                    const d = doc.data();
+                    document.getElementById('order-name').value = d.name; document.getElementById('order-address').value = d.address;
+                    document.getElementById('welcome-msg').style.display = 'block'; playSound('found');
+                }
+                btn.innerHTML = `CONTINUE`; btn.disabled = false; selectPayment('cod');
+            }).catch(e => { document.getElementById('step-1').style.display = 'none'; document.getElementById('step-2').style.display = 'block'; btn.disabled = false; });
+        }
+
+        window.placeOrder = function() {
+            const n = document.getElementById('order-name').value; const a = document.getElementById('order-address').value; const p = document.getElementById('swift-phone').value;
+            
+            if(!n || !a) return alert("Fill Details");
+            
+            const btn = document.getElementById('btn-confirm'); btn.innerText = "Processing..."; btn.disabled = true;
+            setTimeout(() => {
+                const total = cart.reduce((x,y)=>x+(y.price*y.qty),0);
+                // UTR is now implied/not collected manually
+                const order = { items: cart, total, name: n, address: a, phone: p, paymentMethod: selectedPayment, utr: '', timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+                
+                db.collection('artifacts').doc(appId).collection('public').doc('data').collection('customers').doc(p).set({name:n, address:a, phone:p}, {merge:true});
+                db.collection('artifacts').doc(appId).collection('public').doc('data').collection('orders').add(order)
+                .then(ref => {
+                    cart = []; updateBadge();
+                    document.getElementById('success-id').innerText = '#' + ref.id.slice(0,6).toUpperCase();
+                    document.getElementById('success-payment').innerText = selectedPayment;
+                    playSound('success'); setView('success');
+                    document.getElementById('step-1').style.display='block'; document.getElementById('step-2').style.display='none';
+                    btn.innerText = "CONFIRM ORDER"; btn.disabled = false;
+                    document.getElementById('swift-phone').value = '';
+                });
+            }, 1500);
+        }
+
+        window.trackOrder = function() {
+            const p = document.getElementById('track-phone').value;
+            db.collection('artifacts').doc(appId).collection('public').doc('data').collection('orders').where('phone','==',p).get()
+            .then(snap => {
+                const div = document.getElementById('track-results');
+                if(snap.empty) { div.innerHTML = "No orders found."; return; }
+                div.innerHTML = snap.docs.map(d => { const o = d.data(); return `<div class="royal-card" style="padding:15px; margin-bottom:10px;"><div style="font-weight:bold; color:#d4af37; font-family:'Manrope'">#${d.id.slice(0,6).toUpperCase()}</div><div style="font-size:12px; font-family:'Manrope'">${o.items.map(i => i.name).join(', ')}</div><div style="text-align:right; font-weight:bold; font-family:'Manrope'">₹${o.total} <span style="font-size:10px; background:#333; padding:2px 5px; border-radius:4px;">${o.paymentMethod}</span></div></div>`; }).join('');
+            });
+        }
+
+        let taps = 0;
+        window.handleLogoTap = function() { taps++; if(taps === 2) { document.getElementById('login-modal').classList.add('visible'); document.getElementById('login-modal').style.pointerEvents = 'all'; document.getElementById('login-modal').style.opacity = '1'; taps = 0; } }
+        window.closeLogin = function() { document.getElementById('login-modal').classList.remove('visible'); document.getElementById('login-modal').style.pointerEvents = 'none'; document.getElementById('login-modal').style.opacity = '0'; }
+        
+        // --- UPDATED LOGIN LOGIC ---
+        window.loginAdmin = function() {
+            const e = document.getElementById('admin-email').value;
+            const p = document.getElementById('admin-pass').value;
+            const btn = document.getElementById('btn-login');
+            
+            if(!e || !p) return alert("Please enter details");
+            
+            btn.innerText = "Verifying...";
+            auth.signInWithEmailAndPassword(e, p)
+                .then((u) => {
+                    // Auth state listener will handle the rest
+                    btn.innerText = "UNLOCK DASHBOARD";
+                })
+                .catch(err => {
+                    alert("Login Failed: " + err.message);
+                    btn.innerText = "UNLOCK DASHBOARD";
+                });
+        }
+        
+        window.logoutAdmin = function() {
+            auth.signOut().then(() => {
+                toggleAdmin(false);
+                isAdmin = false;
+                // Reload to reset state to anonymous
+                window.location.reload();
+            });
+        }
+
+        window.toggleAdmin = function(show) { const el = document.getElementById('admin-panel'); if(show) el.classList.add('open'); else el.classList.remove('open'); }
+        window.loadAdmin = function() {
+            db.collection('artifacts').doc(appId).collection('public').doc('data').collection('orders').orderBy('timestamp', 'desc').get()
+            .then(snap => {
+                const div = document.getElementById('admin-content');
+                let html = `<table class="admin-table"><thead><tr><th>Name</th><th>Items</th><th>Details</th></tr></thead><tbody>`;
+                snap.docs.forEach(d => { const o = d.data(); html += `<tr><td><div style="font-weight:bold">${o.name}</div><a href="tel:${o.phone}" style="color:#d4af37; font-size:12px;">${o.phone}</a></td><td>${o.items.length} Items<br>₹${o.total}</td><td style="font-size:10px;">${o.paymentMethod}<br>${o.address}</td></tr>`; });
+                div.innerHTML = html + "</tbody></table>";
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
